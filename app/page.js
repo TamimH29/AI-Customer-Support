@@ -1,34 +1,41 @@
 'use client'
-import {useState} from 'react'
-import {Box, Stack, TextField, Button} from "@mui/material"
+import {useState, useRef, useEffect} from 'react'
+import {Box, Stack, TextField, Button, Typography} from "@mui/material"
 import {Send} from "lucide-react"
 
 export default function Home() {
+  //state variable for the entire chat history
   const [messages, setMessages] = useState([{
     role: 'assistant',
     content: `Hi I'm your QuizLearn Study Assistant. How can I assist you today?`
   }])
 
-  const [message, setMessage] = useState('')
+  //state variable for user message to send
+  const [message, setMessage] = useState('') //don't send empty messages
 
+  //backend chat functionality
   const sendMessage = async()=>{
-    setMessage('')
+    if(!message.trim()){return}
+
+    setMessage('') //clear input
     setMessages((messages)=>[
       ...messages,
-      {role: 'user', content: message},
-      {role: 'assistant', content: ''},
+      {role: 'user', content: message}, //add user message to chat
+      {role: 'assistant', content: ''}, //add placeholder for chatbot
     ])
 
+    //send message and get response from the server
     const response = fetch('/api/chat',{
       method: "POST",
       headers: {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify([...messages, {role: 'user', content: message}]),
-      
+
     }).then (async(res)=>{
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
+
+      const reader = res.body.getReader() //reader to read response
+      const decoder = new TextDecoder() //then decode response
 
       let result = ''
       return reader.read().then(function processText({done, value}){
@@ -37,19 +44,30 @@ export default function Home() {
         }
         const text = decoder.decode(value || new Uint8Array(), {stream: true})
         setMessages((messages)=>{
-          let lastMessage = messages[messages.length-1]
-          let otherMessages = messages.slice[0, messages.length-1]
-          return([
-            ...otherMessages,{
-              ...lastMessage,
+          let lastMessage = messages[messages.length-1] //get last message (placeholder for chatbot)
+          let otherMessages = messages.slice(0, messages.length-1) //get all other messages
+          return[
+            ...otherMessages, //all chat history
+            {...lastMessage, //most recent message
               content: lastMessage.content + text,
             },
-          ])
+          ]
         })
-        return reader.read().then(processText)
+
+        return reader.read().then(processText) //continue reading the next chunk of the response
       })
     })
   }
+
+  const messagesEndRef = useRef(null)
+
+  const scrollToBottom = () => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  useEffect(() => {
+      scrollToBottom()
+  }, [messages])
 
   return (
     <Box
@@ -58,15 +76,21 @@ export default function Home() {
       display="flex"
       flexDirection="column"
       justifyContent="center"
-      alignItems="center">
+      alignItems="center"
+      bgcolor="mediumpurple">
+
+      <Typography variant="h3" border = "3px solid black" width="900px" display="flex" justifyContent="center" color="purple" bgcolor="white" p={1}>
+        QuizLearn Assistant
+      </Typography>
       
       <Stack
         direction="column"
-        width="600px"
+        width="900px"
         height="700px"
-        border = "1px solid"
+        border = "3px solid"
         p={2}
-        spacing={1}>
+        spacing={1}
+        bgcolor="white">
 
           <Stack
             direction="column"
@@ -90,7 +114,7 @@ export default function Home() {
                 </Box>
               ))
             }
-
+            <div ref={messagesEndRef} />
           </Stack>
           <Stack
             direction="row"
