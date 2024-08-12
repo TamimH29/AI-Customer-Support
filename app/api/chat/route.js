@@ -16,7 +16,7 @@ const systemPrompt = `You are an AI-powered study tool for QuizLearn, an academi
 
 //POST function to handle incoming requests
 export async function POST(req){
-    const openai = new OpenAI()
+    const openai = new OpenAI({apiKey: process.env.OPENAI_API_KEY})
     const data = await req.json()
 
     //Create a chat completion request to the OpenAI API
